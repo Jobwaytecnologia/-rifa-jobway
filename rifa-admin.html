@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin – Rifa Jobway</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap');
+  :root{--azul:#170278;--laranja:#ED7F35;--bg:#0d0d0d;--card:#161616;--card2:#1e1e1e;--border:#2a2a2a;--text:#f0f0f0;--muted:#888;--green:#2ecc71;--red:#e74c3c;--yellow:#f1c40f;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  #loadingScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+  .spinner{width:44px;height:44px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--laranja);animation:spin .7s linear infinite;margin-bottom:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--muted);}
+
+  /* LOGIN */
+  #loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .login-card{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--laranja);border-radius:14px;padding:32px 24px;width:100%;max-width:360px;text-align:center;}
+  .login-logo{width:48px;height:48px;border-radius:50%;background:var(--laranja);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:#fff;margin:0 auto 16px;}
+  .login-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;margin-bottom:4px;}
+  .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+  .login-input{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;padding:12px 14px;outline:none;font-family:'Barlow',sans-serif;margin-bottom:12px;transition:border-color .2s;}
+  .login-input:focus{border-color:var(--laranja);}
+  .login-btn{width:100%;background:var(--laranja);border:none;border-radius:8px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;padding:13px;cursor:pointer;letter-spacing:.5px;transition:opacity .2s;}
+  .login-btn:hover{opacity:.9;}
+  .login-err{font-size:12px;color:var(--red);margin-top:8px;}
+
+  /* MAIN ADMIN */
+  #adminWrap{display:none;max-width:520px;margin:0 auto;padding:0 0 40px;}
+  .admin-header{background:var(--azul);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--laranja);position:sticky;top:0;z-index:10;}
+  .admin-header-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;}
+  .refresh-btn{background:transparent;border:1.5px solid rgba(255,255,255,.3);color:var(--text);font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;transition:all .2s;}
+  .refresh-btn:hover{border-color:var(--laranja);color:var(--laranja);}
+  .admin-body{padding:16px;}
+  .admin-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .admin-card-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--laranja);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+  .admin-input-row{display:flex;gap:8px;margin-bottom:10px;}
+  .admin-input{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:9px 12px;outline:none;font-family:'Barlow',sans-serif;transition:border-color .2s;}
+  .admin-input:focus{border-color:var(--laranja);}
+  .admin-btn{background:var(--laranja);border:none;border-radius:8px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;padding:9px 16px;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+  .admin-btn:hover{opacity:.85;}
+  .admin-btn.danger{background:var(--red);}
+  .admin-btn.success{background:var(--green);color:#000;}
+  .msg{font-size:12px;margin-top:8px;padding:8px 10px;border-radius:6px;}
+  .msg-ok{background:rgba(46,204,113,.1);color:var(--green);}
+  .msg-err{background:rgba(231,76,60,.1);color:var(--red);}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .stat-box{background:var(--card);border-radius:8px;padding:12px;text-align:center;}
+  .stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;}
+  .stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+  .progress-bar-bg{background:rgba(255,255,255,.08);border-radius:99px;height:8px;overflow:hidden;margin-top:12px;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--laranja),#f9a05c);border-radius:99px;transition:width .4s;}
+  .progress-label{font-size:12px;color:var(--muted);margin-top:6px;text-align:center;}
+
+  /* LIST */
+  .admin-list{max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;}
+  .ali{display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;}
+  .ali:last-child{border-bottom:none;}
+  .ali-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;color:var(--laranja);min-width:38px;}
+  .ali-info{flex:1;margin-left:8px;}
+  .ali-name{font-weight:600;}
+  .ali-phone{font-size:11px;color:var(--muted);}
+  .ali-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0;}
+  .b-paid{background:rgba(46,204,113,.15);color:var(--green);}
+  .b-reserved{background:rgba(241,196,15,.15);color:var(--yellow);}
+  .b-bonus{background:rgba(46,204,113,.1);color:#7ed;}
+  .ali-del{background:transparent;border:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px 6px;margin-left:6px;}
+
+  /* FILTER */
+  .filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+  .filter-btn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .2s;}
+  .filter-btn.active{border-color:var(--laranja);color:var(--laranja);}
+
+  /* WINNER */
+  .winner-box{background:linear-gradient(135deg,rgba(46,204,113,.1),rgba(237,127,53,.1));border:2px solid var(--green);border-radius:12px;padding:20px;text-align:center;margin-top:12px;}
+  .winner-num{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:52px;color:var(--green);line-height:1;}
+  .winner-name{font-size:18px;font-weight:700;margin-top:6px;}
+  .winner-phone{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  .export-btn{width:100%;background:var(--card);border:1.5px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;padding:11px;border-radius:8px;cursor:pointer;margin-top:10px;transition:border-color .2s;}
+  .export-btn:hover{border-color:var(--laranja);color:var(--laranja);}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--green);padding:12px 20px;border-radius:10px;font-size:14px;transition:transform .3s ease;z-index:999;white-space:nowrap;max-width:90vw;overflow:hidden;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  @media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr;}.stat-val{font-size:22px;}}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">Carregando...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginWrap" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">JW</div>
+    <div class="login-title">Painel Admin</div>
+    <div class="login-sub">Rifa Jobway – Patinete Elétrico</div>
+    <input type="password" class="login-input" id="passInput" placeholder="Senha" onkeydown="if(event.key==='Enter')checkPass()"/>
+    <button class="login-btn" onclick="checkPass()">ENTRAR</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminWrap">
+  <div class="admin-header">
+    <div class="admin-header-title">⚙ Admin — Rifa Jobway</div>
+    <button class="refresh-btn" onclick="refreshData()">↻ Atualizar</button>
+  </div>
+  <div class="admin-body">
+
+    <!-- RESUMO -->
+    <div class="admin-card">
+      <div class="admin-card-title">📊 Resumo</div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val" style="color:var(--yellow)" id="sReservados">0</div><div class="stat-label">Reservados</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--green)" id="sPagos">0</div><div class="stat-label">Pagos</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--laranja)" id="sArrecadado">R$0</div><div class="stat-label">Arrecadado</div></div>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="sProg" style="width:0%"></div></div>
+      <div class="progress-label" id="sProgLabel">0 / 126 números ocupados</div>
+    </div>
+
+    <!-- CONFIRMAR PAGAMENTO -->
+    <div class="admin-card">
+      <div class="admin-card-title">✅ Confirmar Pagamento</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Digite o número após receber o comprovante PIX do cliente</div>
+      <div class="admin-input-row">
+        <input type="number" class="admin-input" id="paidNum" placeholder="Número (1-126)" min="1" max="126"/>
+        <button class="admin-btn success" onclick="markPaid()">✓ Confirmar</button>
+      </div>
+      <div id="paidMsg"></div>
+    </div>
+
+    <!-- BÔNUS -->
+    <div class="admin-card">
+      <div class="admin-card-title">🎁 Adicionar Bônus (enquete)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Para quem acertou a enquete do Instagram</div>
+      <div class="admin-input-row">
+        <input type="number" class="admin-input" id="bonusNum" placeholder="Número livre (1-126)" min="1" max="126"/>
+      </div>
+      <div class="admin-input-row">
+        <input type="text" class="admin-input" id="bonusName" placeholder="Nome do participante"/>
+        <button class="admin-btn" onclick="addBonus()">+ Bônus</button>
+      </div>
+      <div id="bonusMsg"></div>
+    </div>
+
+    <!-- LIBERAR -->
+    <div class="admin-card">
+      <div class="admin-card-title">🗑 Liberar Número</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Use quando alguém reservar mas não pagar</div>
+      <div class="admin-input-row">
+        <input type="number" class="admin-input" id="removeNum" placeholder="Número" min="1" max="126"/>
+        <button class="admin-btn danger" onclick="removeNum()">Liberar</button>
+      </div>
+      <div id="removeMsg"></div>
+    </div>
+
+    <!-- SORTEIO -->
+    <div class="admin-card">
+      <div class="admin-card-title">🎰 Sorteio</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Só libera quando os 100 números pagos estiverem <strong style="color:var(--text)">pagos ou bônus</strong>. Números apenas reservados não entram.
+      </div>
+      <button class="admin-btn" style="width:100%;padding:13px;font-size:17px" onclick="doRaffle()">🎲 SORTEAR AGORA</button>
+      <div id="raffleResult"></div>
+    </div>
+
+    <!-- PARTICIPANTES -->
+    <div class="admin-card">
+      <div class="admin-card-title">👥 Participantes</div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">Todos</button>
+        <button class="filter-btn" onclick="setFilter('reserved',this)">Reservados</button>
+        <button class="filter-btn" onclick="setFilter('paid',this)">Pagos</button>
+        <button class="filter-btn" onclick="setFilter('bonus',this)">Bônus</button>
+      </div>
+      <div class="admin-list" id="adminList">
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando...</div>
+      </div>
+      <button class="export-btn" onclick="exportCSV()">📥 Exportar lista (CSV)</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TOTAL=126, PRICE=35;
+const STORAGE_KEY='rifa-jobway-numeros';
+const ADMIN_PASSWORD='jobway2025'; // Troque aqui
+let numbers = new Array(TOTAL).fill(null);
+let currentFilter = 'all';
+
+async function init() {
+  await loadData();
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('loginWrap').style.display = 'flex';
+}
+
+async function loadData() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if (res && res.value) {
+      const p = JSON.parse(res.value);
+      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    }
+  } catch(e) {}
+}
+
+async function saveData() {
+  try { await window.storage.set(STORAGE_KEY, JSON.stringify(numbers), true); }
+  catch(e) { showToast('⚠ Erro ao salvar!', '#e74c3c'); }
+}
+
+async function refreshData() {
+  await loadData();
+  renderAll();
+  showToast('✓ Dados atualizados');
+}
+
+function checkPass() {
+  const v = document.getElementById('passInput').value;
+  if (v === ADMIN_PASSWORD) {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('adminWrap').style.display = 'block';
+    renderAll();
+    // auto-refresh a cada 20s
+    setInterval(async () => { await loadData(); renderAll(); }, 20000);
+  } else {
+    document.getElementById('loginErr').textContent = 'Senha incorreta';
+  }
+}
+
+function getStats() {
+  let paid=0,bonus=0,reserved=0;
+  numbers.forEach(n=>{ if(!n)return; if(n.type==='paid')paid++; else if(n.type==='bonus')bonus++; else if(n.type==='reserved')reserved++; });
+  return { paid, bonus, reserved, occupied:paid+bonus+reserved, arrecadado:paid*PRICE };
+}
+
+function renderAll() {
+  const s = getStats();
+  const pct = Math.round((s.paid/100)*100);
+  document.getElementById('sReservados').textContent = s.reserved;
+  document.getElementById('sPagos').textContent = s.paid;
+  document.getElementById('sArrecadado').textContent = 'R$'+s.arrecadado.toLocaleString('pt-BR');
+  document.getElementById('sProg').style.width = Math.min(pct,100)+'%';
+  document.getElementById('sProgLabel').textContent = `${s.paid}/100 pagos · ${s.bonus} bônus · ${s.reserved} reservados`;
+  renderList();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderList() {
+  const list = document.getElementById('adminList');
+  const typeLabel = { paid:'Pago', reserved:'Reservado', bonus:'Bônus' };
+  const typeClass = { paid:'b-paid', reserved:'b-reserved', bonus:'b-bonus' };
+  const items = [];
+  numbers.forEach((n,i) => {
+    if (!n) return;
+    if (currentFilter !== 'all' && n.type !== currentFilter) return;
+    items.push({ num:i+1, ...n });
+  });
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Nenhum participante${currentFilter!=='all'?' nessa categoria':''}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div class="ali">
+      <div class="ali-num">${String(it.num).padStart(3,'0')}</div>
+      <div class="ali-info">
+        <div class="ali-name">${it.name}</div>
+        <div class="ali-phone">${it.phone||'—'}</div>
+      </div>
+      <span class="ali-badge ${typeClass[it.type]}">${typeLabel[it.type]}</span>
+      <button class="ali-del" onclick="quickRemove(${it.num})" title="Liberar">🗑</button>
+    </div>
+  `).join('');
+}
+
+async function markPaid() {
+  const num = parseInt(document.getElementById('paidNum').value);
+  const msg = document.getElementById('paidMsg');
+  if (!num||num<1||num>TOTAL) { msg.innerHTML='<div class="msg msg-err">Número inválido (1-126)</div>'; return; }
+  await loadData();
+  const n = numbers[num-1];
+  if (!n) { msg.innerHTML='<div class="msg msg-err">Número ainda não foi reservado</div>'; return; }
+  if (n.type==='paid') { msg.innerHTML='<div class="msg msg-ok">Já estava confirmado como pago ✓</div>'; return; }
+  numbers[num-1].type = 'paid';
+  await saveData(); renderAll();
+  msg.innerHTML = `<div class="msg msg-ok">✓ Pagamento de <strong>${n.name}</strong> confirmado!</div>`;
+  document.getElementById('paidNum').value = '';
+}
+
+async function addBonus() {
+  const num = parseInt(document.getElementById('bonusNum').value);
+  const name = document.getElementById('bonusName').value.trim();
+  const msg = document.getElementById('bonusMsg');
+  if (!num||num<1||num>TOTAL) { msg.innerHTML='<div class="msg msg-err">Número inválido (1-126)</div>'; return; }
+  if (!name) { msg.innerHTML='<div class="msg msg-err">Informe o nome</div>'; return; }
+  await loadData();
+  if (numbers[num-1]) { msg.innerHTML=`<div class="msg msg-err">Número ${num} já está ocupado por ${numbers[num-1].name}</div>`; return; }
+  numbers[num-1] = { name, phone:'', type:'bonus' };
+  await saveData(); renderAll();
+  document.getElementById('bonusNum').value='';
+  document.getElementById('bonusName').value='';
+  msg.innerHTML = `<div class="msg msg-ok">✓ Bônus: <strong>${name}</strong> → número ${String(num).padStart(3,'0')}</div>`;
+}
+
+async function removeNum() {
+  const num = parseInt(document.getElementById('removeNum').value);
+  const msg = document.getElementById('removeMsg');
+  if (!num||num<1||num>TOTAL) { msg.innerHTML='<div class="msg msg-err">Número inválido</div>'; return; }
+  await loadData();
+  if (!numbers[num-1]) { msg.innerHTML='<div class="msg msg-err">Número já está livre</div>'; return; }
+  const prev = numbers[num-1].name;
+  numbers[num-1] = null;
+  await saveData(); renderAll();
+  msg.innerHTML = `<div class="msg msg-ok">✓ Número ${String(num).padStart(3,'0')} liberado (era: ${prev})</div>`;
+  document.getElementById('removeNum').value='';
+}
+
+async function quickRemove(num) {
+  if (!confirm(`Liberar número ${String(num).padStart(3,'0')}?`)) return;
+  await loadData();
+  numbers[num-1] = null;
+  await saveData(); renderAll();
+  showToast(`Número ${String(num).padStart(3,'0')} liberado`);
+}
+
+async function doRaffle() {
+  await loadData();
+  const s = getStats();
+  const el = document.getElementById('raffleResult');
+  const PAID_NEEDED = 100;
+  if (s.paid < PAID_NEEDED) {
+    el.innerHTML = `<div class="msg msg-err">Faltam ${PAID_NEEDED - s.paid} números pagos. Atual: ${s.paid}/100.</div>`;
+    return;
+  }
+  const eligible = [];
+  numbers.forEach((n,i)=>{ if(n&&(n.type==='paid'||n.type==='bonus'))eligible.push({num:i+1,...n}); });
+  const w = eligible[Math.floor(Math.random()*eligible.length)];
+  el.innerHTML = `
+    <div class="winner-box">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">🎉 GANHADOR(A)</div>
+      <div class="winner-num">${String(w.num).padStart(3,'0')}</div>
+      <div class="winner-name">${w.name}</div>
+      <div class="winner-phone">${w.phone||'Número bônus'}</div>
+    </div>
+  `;
+}
+
+function exportCSV() {
+  const items=[];
+  numbers.forEach((n,i)=>{ if(n)items.push({num:i+1,...n}); });
+  if (!items.length) { showToast('Nenhum participante para exportar','#e74c3c'); return; }
+  const tl={paid:'Pago',reserved:'Reservado',bonus:'Bônus'};
+  let csv='Número;Nome;WhatsApp;Status\n';
+  items.forEach(it=>{ csv+=`${String(it.num).padStart(3,'0')};${it.name};${it.phone||''};${tl[it.type]}\n`; });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='rifa-jobway-participantes.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+function showToast(msg,color){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.borderLeftColor=color||'#2ecc71';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+init();
+</script>
+</body>
+</html>

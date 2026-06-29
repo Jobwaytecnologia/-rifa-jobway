@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rifa Jobway – Patinete Elétrico</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap');
+  :root {
+    --azul:#170278;--laranja:#ED7F35;--laranja-light:#f9a05c;
+    --bg:#0d0d0d;--card:#161616;--card2:#1e1e1e;--border:#2a2a2a;
+    --text:#f0f0f0;--muted:#888;--green:#2ecc71;--red:#e74c3c;--yellow:#f1c40f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  #loadingScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+  .spinner{width:44px;height:44px;border-radius:50%;border:4px solid var(--border);border-top-color:var(--laranja);animation:spin .7s linear infinite;margin-bottom:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:var(--muted);}
+  header{background:var(--azul);padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--laranja);position:sticky;top:0;z-index:50;}
+  .logo-circle{width:40px;height:40px;border-radius:50%;background:var(--laranja);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:#fff;flex-shrink:0;}
+  .header-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;line-height:1.1;}
+  .header-title span{color:var(--laranja);}
+  .header-sub{font-size:11px;color:#aac4ff;margin-top:1px;}
+  .prize-banner{background:linear-gradient(135deg,var(--azul) 0%,#2a0a8f 100%);padding:20px;text-align:center;border-bottom:2px solid var(--border);position:relative;overflow:hidden;}
+  .prize-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 70% 50%,rgba(237,127,53,.15) 0%,transparent 60%);}
+  .prize-emoji{font-size:42px;line-height:1;}
+  .prize-name{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:26px;letter-spacing:1px;margin-top:4px;}
+  .prize-name span{color:var(--laranja);}
+  .prize-value{font-size:13px;color:#aac4ff;margin-top:2px;}
+  .progress-wrap{margin:14px auto 0;max-width:320px;}
+  .progress-bar-bg{background:rgba(255,255,255,.1);border-radius:99px;height:10px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--laranja),var(--laranja-light));border-radius:99px;transition:width .4s ease;}
+  .progress-labels{display:flex;justify-content:space-between;font-size:12px;color:#aac4ff;margin-top:5px;}
+  .progress-labels strong{color:var(--laranja);}
+  .stats-row{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+  .stat{flex:1;background:var(--card2);padding:12px 10px;text-align:center;}
+  .stat-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:var(--laranja);}
+  .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+  .main{padding:16px;max-width:700px;margin:0 auto;}
+  .section-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-bottom:24px;}
+  .num-btn{aspect-ratio:1;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+  .num-btn:hover:not(.sold):not(.bonus):not(.reserved){border-color:var(--laranja);color:var(--laranja);transform:scale(1.06);}
+  .num-btn.sold{background:#1a1a1a;border-color:#2a2a2a;color:#3a3a3a;cursor:default;}
+  .num-btn.reserved{background:rgba(241,196,15,.08);border-color:var(--yellow);color:var(--yellow);cursor:default;}
+  .num-btn.bonus{background:rgba(46,204,113,.12);border-color:var(--green);color:var(--green);cursor:default;}
+  .num-label{font-size:13px;font-weight:900;}
+  .num-name{font-size:8px;color:var(--muted);text-align:center;line-height:1.1;max-width:50px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .num-btn.sold .num-label{color:#2e2e2e;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+  .ld-free{background:var(--card);border:1.5px solid var(--border);}
+  .ld-reserved{background:rgba(241,196,15,.1);border:1.5px solid var(--yellow);}
+  .ld-sold{background:#1a1a1a;border:1.5px solid #2a2a2a;}
+  .ld-bonus{background:rgba(46,204,113,.2);border:1.5px solid var(--green);}
+  .rules-card{background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--laranja);border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.8;color:var(--muted);}
+  .rules-card strong{color:var(--text);}
+  .rules-card ul{margin:6px 0 0 16px;}
+  .rules-card li{margin-bottom:4px;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:flex-end;justify-content:center;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--card);border-radius:18px 18px 0 0;border-top:3px solid var(--laranja);padding:24px 20px 32px;width:100%;max-width:500px;animation:slideUp .25s ease;}
+  @keyframes slideUp{from{transform:translateY(60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;margin-bottom:4px;}
+  .modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+  .sel-chip{display:inline-block;background:rgba(237,127,53,.15);border:1.5px solid var(--laranja);color:var(--laranja);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;padding:3px 10px;border-radius:20px;margin-bottom:14px;}
+  .form-group{margin-bottom:14px;}
+  .form-group label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+  .form-group input{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;padding:10px 12px;outline:none;transition:border-color .2s;font-family:'Barlow',sans-serif;}
+  .form-group input:focus{border-color:var(--laranja);}
+  .total-row{display:flex;justify-content:space-between;align-items:center;background:var(--card2);border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--border);}
+  .total-label{font-size:13px;color:var(--muted);}
+  .total-val{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:24px;color:var(--laranja);}
+  .pix-info{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:#7ed;margin-bottom:16px;line-height:1.6;}
+  .btn-confirm{width:100%;background:var(--laranja);border:none;border-radius:10px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;padding:14px;cursor:pointer;letter-spacing:1px;transition:opacity .2s;}
+  .btn-confirm:hover{opacity:.9;}
+  .btn-confirm:disabled{opacity:.5;cursor:default;}
+  .btn-cancel{width:100%;background:transparent;border:none;color:var(--muted);font-size:13px;padding:10px;cursor:pointer;margin-top:6px;font-family:'Barlow',sans-serif;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--border);border-left:3px solid var(--green);padding:12px 20px;border-radius:10px;font-size:14px;transition:transform .3s ease;z-index:999;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  @media(max-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:5px;}.num-btn{font-size:13px;}.stats-row .stat-val{font-size:18px;}}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">Carregando rifa...</div>
+</div>
+
+<header>
+  <div class="logo-circle">JW</div>
+  <div>
+    <div class="header-title">RIFA <span>JOBWAY</span></div>
+    <div class="header-sub">Tecnologia · Garopaba</div>
+  </div>
+</header>
+
+<div class="prize-banner">
+  <div class="prize-emoji">🛴</div>
+  <div class="prize-name">PATINETE <span>ELÉTRICO</span></div>
+  <div class="prize-value">Valor do prêmio: R$ 3.200,00</div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progFill" style="width:0%"></div></div>
+    <div class="progress-labels">
+      <span><strong id="progSold">0</strong> pagos</span>
+      <span id="progPct">0%</span>
+      <span>meta: 100</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-val" id="statLivres">126</div><div class="stat-label">Disponíveis</div></div>
+  <div class="stat"><div class="stat-val" id="statReservados">0</div><div class="stat-label">Reservados</div></div>
+  <div class="stat"><div class="stat-val" id="statVendidos">0</div><div class="stat-label">Pagos</div></div>
+  <div class="stat"><div class="stat-val" id="statArrecadado">R$0</div><div class="stat-label">Arrecadado</div></div>
+</div>
+
+<div class="main">
+  <div class="rules-card">
+    <strong>🛴 Rifa do Patinete Elétrico — R$ 35,00 o número</strong><br/><br/>
+    O sorteio só acontece quando os <strong>100 números pagos</strong> forem vendidos — sem data fixa. Quanto antes encher, mais rápido rola!<br/><br/>
+    <strong>⚽ Mas tem bônus!</strong><br/>
+    Ainda temos <strong>26 jogos pela frente</strong> e a cada jogo vamos postar uma enquete no Instagram com o placar. Acertou? Você ganha <strong>+1 número de graça!</strong><br/><br/>
+    <strong>🎯 Atenção:</strong> as enquetes são exclusivas pra <strong>quem já comprou número</strong>. Garanta o seu e concorra a até <strong>26 números bônus!</strong>
+  </div>
+
+  <div class="section-title">Escolha seu número</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot ld-free"></div>Disponível</div>
+    <div class="legend-item"><div class="legend-dot ld-reserved"></div>Reservado</div>
+    <div class="legend-item"><div class="legend-dot ld-sold"></div>Pago</div>
+    <div class="legend-item"><div class="legend-dot ld-bonus"></div>Bônus</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title">Reservar Número</div>
+    <div class="modal-sub">Preencha seus dados para confirmar</div>
+    <div id="selNums"></div>
+    <div class="form-group">
+      <label>Seu nome completo</label>
+      <input type="text" id="buyerName" placeholder="Ex: João da Silva"/>
+    </div>
+    <div class="form-group">
+      <label>WhatsApp</label>
+      <input type="tel" id="buyerPhone" placeholder="(48) 99999-9999"/>
+    </div>
+    <div class="total-row">
+      <div class="total-label">Total a pagar</div>
+      <div class="total-val">R$ 35,00</div>
+    </div>
+    <div class="pix-info">
+      💚 Pague via <strong>PIX</strong> — chave: <strong>contato@jobway.com.br</strong><br/>
+      Envie o comprovante no WhatsApp <strong>(48) 3354-0060</strong>
+    </div>
+    <button class="btn-confirm" id="btnConfirm" onclick="confirmPurchase()">CONFIRMAR RESERVA</button>
+    <button class="btn-cancel" onclick="closeOverlay()">Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TOTAL = 126, PRICE = 35;
+const STORAGE_KEY = 'rifa-jobway-numeros';
+let numbers = new Array(TOTAL).fill(null);
+let selectedNum = null;
+
+async function loadData() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if (res && res.value) {
+      const p = JSON.parse(res.value);
+      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    }
+  } catch(e) {}
+  document.getElementById('loadingScreen').style.display = 'none';
+  render();
+}
+
+async function loadDataSilent() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if (res && res.value) {
+      const p = JSON.parse(res.value);
+      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    }
+  } catch(e) {}
+}
+
+async function saveData() {
+  try { await window.storage.set(STORAGE_KEY, JSON.stringify(numbers), true); }
+  catch(e) { showToast('⚠ Erro ao salvar. Tente novamente.', '#e74c3c'); }
+}
+
+function getStats() {
+  let paid=0, bonus=0, reserved=0;
+  numbers.forEach(n => { if(!n)return; if(n.type==='paid')paid++; else if(n.type==='bonus')bonus++; else if(n.type==='reserved')reserved++; });
+  return { paid, bonus, reserved, occupied: paid+bonus+reserved, arrecadado: paid*PRICE };
+}
+
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  numbers.forEach((n, i) => {
+    const num = i+1, btn = document.createElement('button');
+    btn.className = 'num-btn';
+    const label = String(num).padStart(3,'0');
+    if (!n) {
+      btn.innerHTML = `<span class="num-label">${label}</span>`;
+      btn.onclick = () => openPurchase(num);
+    } else if (n.type === 'paid') {
+      btn.classList.add('sold');
+      btn.innerHTML = `<span class="num-label">${label}</span><span class="num-name">${n.name.split(' ')[0]}</span>`;
+    } else if (n.type === 'reserved') {
+      btn.classList.add('reserved');
+      btn.innerHTML = `<span class="num-label">${label}</span><span class="num-name">${n.name.split(' ')[0]}</span>`;
+    } else if (n.type === 'bonus') {
+      btn.classList.add('bonus');
+      btn.innerHTML = `<span class="num-label">${label}</span><span class="num-name">${n.name.split(' ')[0]}</span>`;
+    }
+    grid.appendChild(btn);
+  });
+
+  const s = getStats();
+  const pct = Math.round((s.paid/100)*100);
+  document.getElementById('progFill').style.width = Math.min(pct,100)+'%';
+  document.getElementById('progSold').textContent = s.paid;
+  document.getElementById('progPct').textContent = pct+'%';
+  document.getElementById('statLivres').textContent = TOTAL - s.occupied;
+  document.getElementById('statReservados').textContent = s.reserved;
+  document.getElementById('statVendidos').textContent = s.paid;
+  document.getElementById('statArrecadado').textContent = 'R$'+s.arrecadado.toLocaleString('pt-BR');
+}
+
+function openPurchase(num) {
+  selectedNum = num;
+  document.getElementById('selNums').innerHTML = `<div class="sel-chip">Número ${String(num).padStart(3,'0')}</div>`;
+  document.getElementById('buyerName').value = '';
+  document.getElementById('buyerPhone').value = '';
+  document.getElementById('btnConfirm').disabled = false;
+  document.getElementById('btnConfirm').textContent = 'CONFIRMAR RESERVA';
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+  selectedNum = null;
+}
+
+async function confirmPurchase() {
+  const name = document.getElementById('buyerName').value.trim();
+  const phone = document.getElementById('buyerPhone').value.trim();
+  if (!name) { showToast('⚠ Informe seu nome', '#e74c3c'); return; }
+  if (!phone) { showToast('⚠ Informe seu WhatsApp', '#e74c3c'); return; }
+  if (!selectedNum) return;
+  const btn = document.getElementById('btnConfirm');
+  btn.disabled = true; btn.textContent = 'SALVANDO...';
+  await loadDataSilent();
+  const idx = selectedNum - 1;
+  if (numbers[idx]) {
+    showToast('⚠ Número já foi reservado por outra pessoa!', '#e74c3c');
+    btn.disabled = false; btn.textContent = 'CONFIRMAR RESERVA';
+    closeOverlay(); render(); return;
+  }
+  numbers[idx] = { name, phone, type: 'reserved' };
+  await saveData(); render(); closeOverlay();
+  showToast(`✓ Número ${String(selectedNum).padStart(3,'0')} reservado! Pague o PIX e envie o comprovante.`);
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.borderLeftColor = color||'#2ecc71';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this)closeOverlay(); });
+setInterval(async()=>{ await loadDataSilent(); render(); }, 30000);
+loadData();
+</script>
+</body>
+</html>
