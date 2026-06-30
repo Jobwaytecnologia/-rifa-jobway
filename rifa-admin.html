@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Admin – Rifa Jobway</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap');
   :root{--azul:#170278;--laranja:#ED7F35;--bg:#0d0d0d;--card:#161616;--card2:#1e1e1e;--border:#2a2a2a;--text:#f0f0f0;--muted:#888;--green:#2ecc71;--red:#e74c3c;--yellow:#f1c40f;}
@@ -127,10 +128,27 @@
       <div class="progress-label" id="sProgLabel">0 / 126 números ocupados</div>
     </div>
 
+    <!-- VENDA DIRETA -->
+    <div class="admin-card">
+      <div class="admin-card-title">💰 Vender Direto (cliente pagou na loja)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Use quando o cliente compra presencialmente, sem passar pelo site</div>
+      <div class="admin-input-row">
+        <input type="number" class="admin-input" id="directNum" placeholder="Número livre (1-126)" min="1" max="126"/>
+      </div>
+      <div class="admin-input-row">
+        <input type="text" class="admin-input" id="directName" placeholder="Nome do cliente"/>
+      </div>
+      <div class="admin-input-row">
+        <input type="tel" class="admin-input" id="directPhone" placeholder="WhatsApp"/>
+        <button class="admin-btn success" onclick="addDirectSale()">✓ Vender</button>
+      </div>
+      <div id="directMsg"></div>
+    </div>
+
     <!-- CONFIRMAR PAGAMENTO -->
     <div class="admin-card">
       <div class="admin-card-title">✅ Confirmar Pagamento</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Digite o número após receber o comprovante PIX do cliente</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Digite o número após receber o comprovante PIX de quem reservou pelo site</div>
       <div class="admin-input-row">
         <input type="number" class="admin-input" id="paidNum" placeholder="Número (1-126)" min="1" max="126"/>
         <button class="admin-btn success" onclick="markPaid()">✓ Confirmar</button>
@@ -195,9 +213,13 @@
 
 <script>
 const TOTAL=126, PRICE=35;
-const STORAGE_KEY='rifa-jobway-numeros';
 const ADMIN_PASSWORD='jobway2025'; // Troque aqui
+const SUPABASE_URL = 'https://htziskgtlrwiqugbhsxs.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lLuEq97IS9xaVgXJck1MZA_YTeo3CgO';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let numbers = new Array(TOTAL).fill(null);
+let rowIds = new Array(TOTAL).fill(null); // guarda o id da linha no banco
 let currentFilter = 'all';
 
 async function init() {
@@ -208,17 +230,37 @@ async function init() {
 
 async function loadData() {
   try {
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if (res && res.value) {
-      const p = JSON.parse(res.value);
-      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    const { data, error } = await sb.from('numeros').select('*');
+    if (!error && data) {
+      numbers = new Array(TOTAL).fill(null);
+      rowIds = new Array(TOTAL).fill(null);
+      data.forEach(row => {
+        if (row.numero >= 1 && row.numero <= TOTAL) {
+          numbers[row.numero - 1] = { name: row.nome, phone: row.telefone, type: row.tipo };
+          rowIds[row.numero - 1] = row.id;
+        }
+      });
     }
-  } catch(e) {}
+  } catch(e) { console.error(e); }
 }
 
-async function saveData() {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(numbers), true); }
-  catch(e) { showToast('⚠ Erro ao salvar!', '#e74c3c'); }
+async function insertNumber(num, name, phone, tipo) {
+  const { error } = await sb.from('numeros').insert([{ numero: num, nome: name, telefone: phone, tipo }]);
+  return !error;
+}
+
+async function updateNumberType(num, tipo) {
+  const id = rowIds[num-1];
+  if (!id) return false;
+  const { error } = await sb.from('numeros').update({ tipo }).eq('id', id);
+  return !error;
+}
+
+async function deleteNumber(num) {
+  const id = rowIds[num-1];
+  if (!id) return false;
+  const { error } = await sb.from('numeros').delete().eq('id', id);
+  return !error;
 }
 
 async function refreshData() {
@@ -233,8 +275,8 @@ function checkPass() {
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('adminWrap').style.display = 'block';
     renderAll();
-    // auto-refresh a cada 20s
-    setInterval(async () => { await loadData(); renderAll(); }, 20000);
+    // auto-refresh a cada 15s
+    setInterval(async () => { await loadData(); renderAll(); }, 15000);
   } else {
     document.getElementById('loginErr').textContent = 'Senha incorreta';
   }
@@ -291,6 +333,24 @@ function renderList() {
   `).join('');
 }
 
+async function addDirectSale() {
+  const num = parseInt(document.getElementById('directNum').value);
+  const name = document.getElementById('directName').value.trim();
+  const phone = document.getElementById('directPhone').value.trim();
+  const msg = document.getElementById('directMsg');
+  if (!num||num<1||num>TOTAL) { msg.innerHTML='<div class="msg msg-err">Número inválido (1-126)</div>'; return; }
+  if (!name) { msg.innerHTML='<div class="msg msg-err">Informe o nome do cliente</div>'; return; }
+  await loadData();
+  if (numbers[num-1]) { msg.innerHTML=`<div class="msg msg-err">Número ${num} já está ocupado por ${numbers[num-1].name}</div>`; return; }
+  const ok = await insertNumber(num, name, phone, 'paid');
+  if (!ok) { msg.innerHTML='<div class="msg msg-err">Erro ao salvar, tente novamente</div>'; return; }
+  await loadData(); renderAll();
+  document.getElementById('directNum').value='';
+  document.getElementById('directName').value='';
+  document.getElementById('directPhone').value='';
+  msg.innerHTML = `<div class="msg msg-ok">✓ Venda registrada: <strong>${name}</strong> → número ${String(num).padStart(3,'0')} (já pago)</div>`;
+}
+
 async function markPaid() {
   const num = parseInt(document.getElementById('paidNum').value);
   const msg = document.getElementById('paidMsg');
@@ -299,8 +359,9 @@ async function markPaid() {
   const n = numbers[num-1];
   if (!n) { msg.innerHTML='<div class="msg msg-err">Número ainda não foi reservado</div>'; return; }
   if (n.type==='paid') { msg.innerHTML='<div class="msg msg-ok">Já estava confirmado como pago ✓</div>'; return; }
-  numbers[num-1].type = 'paid';
-  await saveData(); renderAll();
+  const ok = await updateNumberType(num, 'paid');
+  if (!ok) { msg.innerHTML='<div class="msg msg-err">Erro ao salvar, tente novamente</div>'; return; }
+  await loadData(); renderAll();
   msg.innerHTML = `<div class="msg msg-ok">✓ Pagamento de <strong>${n.name}</strong> confirmado!</div>`;
   document.getElementById('paidNum').value = '';
 }
@@ -313,8 +374,9 @@ async function addBonus() {
   if (!name) { msg.innerHTML='<div class="msg msg-err">Informe o nome</div>'; return; }
   await loadData();
   if (numbers[num-1]) { msg.innerHTML=`<div class="msg msg-err">Número ${num} já está ocupado por ${numbers[num-1].name}</div>`; return; }
-  numbers[num-1] = { name, phone:'', type:'bonus' };
-  await saveData(); renderAll();
+  const ok = await insertNumber(num, name, '', 'bonus');
+  if (!ok) { msg.innerHTML='<div class="msg msg-err">Erro ao salvar, tente novamente</div>'; return; }
+  await loadData(); renderAll();
   document.getElementById('bonusNum').value='';
   document.getElementById('bonusName').value='';
   msg.innerHTML = `<div class="msg msg-ok">✓ Bônus: <strong>${name}</strong> → número ${String(num).padStart(3,'0')}</div>`;
@@ -327,8 +389,9 @@ async function removeNum() {
   await loadData();
   if (!numbers[num-1]) { msg.innerHTML='<div class="msg msg-err">Número já está livre</div>'; return; }
   const prev = numbers[num-1].name;
-  numbers[num-1] = null;
-  await saveData(); renderAll();
+  const ok = await deleteNumber(num);
+  if (!ok) { msg.innerHTML='<div class="msg msg-err">Erro ao liberar, tente novamente</div>'; return; }
+  await loadData(); renderAll();
   msg.innerHTML = `<div class="msg msg-ok">✓ Número ${String(num).padStart(3,'0')} liberado (era: ${prev})</div>`;
   document.getElementById('removeNum').value='';
 }
@@ -336,8 +399,8 @@ async function removeNum() {
 async function quickRemove(num) {
   if (!confirm(`Liberar número ${String(num).padStart(3,'0')}?`)) return;
   await loadData();
-  numbers[num-1] = null;
-  await saveData(); renderAll();
+  await deleteNumber(num);
+  await loadData(); renderAll();
   showToast(`Número ${String(num).padStart(3,'0')} liberado`);
 }
 

@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Rifa Jobway – Patinete Elétrico</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=Barlow:wght@400;500;600&display=swap');
   :root {
@@ -172,35 +173,46 @@
 
 <script>
 const TOTAL = 126, PRICE = 35;
-const STORAGE_KEY = 'rifa-jobway-numeros';
+const SUPABASE_URL = 'https://htziskgtlrwiqugbhsxs.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lLuEq97IS9xaVgXJck1MZA_YTeo3CgO';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let numbers = new Array(TOTAL).fill(null);
 let selectedNum = null;
 
 async function loadData() {
   try {
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if (res && res.value) {
-      const p = JSON.parse(res.value);
-      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    const { data, error } = await sb.from('numeros').select('*');
+    if (!error && data) {
+      numbers = new Array(TOTAL).fill(null);
+      data.forEach(row => {
+        if (row.numero >= 1 && row.numero <= TOTAL) {
+          numbers[row.numero - 1] = { name: row.nome, phone: row.telefone, type: row.tipo };
+        }
+      });
     }
-  } catch(e) {}
+  } catch(e) { console.error(e); }
   document.getElementById('loadingScreen').style.display = 'none';
   render();
 }
 
 async function loadDataSilent() {
   try {
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if (res && res.value) {
-      const p = JSON.parse(res.value);
-      if (Array.isArray(p) && p.length === TOTAL) numbers = p;
+    const { data, error } = await sb.from('numeros').select('*');
+    if (!error && data) {
+      numbers = new Array(TOTAL).fill(null);
+      data.forEach(row => {
+        if (row.numero >= 1 && row.numero <= TOTAL) {
+          numbers[row.numero - 1] = { name: row.nome, phone: row.telefone, type: row.tipo };
+        }
+      });
     }
-  } catch(e) {}
+  } catch(e) { console.error(e); }
 }
 
-async function saveData() {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(numbers), true); }
-  catch(e) { showToast('⚠ Erro ao salvar. Tente novamente.', '#e74c3c'); }
+async function insertNumber(num, name, phone, tipo) {
+  const { error } = await sb.from('numeros').insert([{ numero: num, nome: name, telefone: phone, tipo }]);
+  return !error;
 }
 
 function getStats() {
@@ -273,8 +285,13 @@ async function confirmPurchase() {
     btn.disabled = false; btn.textContent = 'CONFIRMAR RESERVA';
     closeOverlay(); render(); return;
   }
-  numbers[idx] = { name, phone, type: 'reserved' };
-  await saveData(); render(); closeOverlay();
+  const ok = await insertNumber(selectedNum, name, phone, 'reserved');
+  if (!ok) {
+    showToast('⚠ Erro ao salvar. Tente novamente.', '#e74c3c');
+    btn.disabled = false; btn.textContent = 'CONFIRMAR RESERVA';
+    return;
+  }
+  await loadDataSilent(); render(); closeOverlay();
   showToast(`✓ Número ${String(selectedNum).padStart(3,'0')} reservado! Pague o PIX e envie o comprovante.`);
 }
 
@@ -285,7 +302,7 @@ function showToast(msg, color) {
 }
 
 document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this)closeOverlay(); });
-setInterval(async()=>{ await loadDataSilent(); render(); }, 30000);
+setInterval(async()=>{ await loadDataSilent(); render(); }, 10000);
 loadData();
 </script>
 </body>
